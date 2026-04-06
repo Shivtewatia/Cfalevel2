@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CFA Level 2 — Study Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0d0f14;
+  --bg2: #13161e;
+  --bg3: #1a1e28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8eaf0;
+  --muted: #6b7280;
+  --muted2: #9ca3af;
+  --accent: #6ee7b7;
+  --accent2: #34d399;
+  --red: #f87171;
+  --amber: #fbbf24;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --teal: #2dd4bf;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.header {
+  padding: 2rem 2.5rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: linear-gradient(180deg, rgba(110,231,183,0.04) 0%, transparent 100%);
+}
+.header-left h1 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #fff;
+  line-height: 1.1;
+}
+.header-left h1 span { color: var(--accent); }
+.header-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+.exam-badge {
+  background: rgba(110,231,183,0.1);
+  border: 1px solid rgba(110,231,183,0.25);
+  border-radius: 8px;
+  padding: 8px 16px;
+  text-align: right;
+}
+.exam-badge .label { font-size: 10px; color: var(--muted); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
+.exam-badge .value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; color: var(--accent); }
+.exam-badge .sub { font-size: 11px; color: var(--muted2); }
+
+/* ── LAYOUT ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem 2.5rem; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 2rem; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 2rem; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 2rem; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+.card-lg { padding: 1.5rem; }
+.card-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+/* ── METRIC CARDS ── */
+.metric .m-val {
+  font-family: var(--font-display);
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.metric .m-lbl { font-size: 12px; color: var(--muted2); }
+.metric .m-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: var(--font-mono); }
+
+/* ── PROGRESS BARS ── */
+.subject-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 44px 70px 90px;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.subject-row:last-child { border-bottom: none; }
+.subj-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.subj-weight { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+.bar-bg {
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  height: 6px;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 1s cubic-bezier(.4,0,.2,1);
+}
+.pct {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: right;
+}
+.status-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+}
+
+/* ── LM TABLE ── */
+.lm-table { width: 100%; border-collapse: collapse; }
+.lm-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border2);
+}
+.lm-table td {
+  padding: 7px 10px;
+  font-size: 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.lm-table tr:last-child td { border-bottom: none; }
+.lm-table tr:hover td { background: rgba(255,255,255,0.02); }
+.lm-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  width: 32px;
+}
+.tick { display: inline-block; width: 18px; height: 18px; border-radius: 4px; text-align: center; line-height: 18px; font-size: 10px; }
+.tick-done { background: rgba(110,231,183,0.15); color: var(--accent2); }
+.tick-half { background: rgba(251,191,36,0.15); color: var(--amber); }
+.tick-no   { background: rgba(255,255,255,0.05); color: var(--muted); }
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar-bg { background: rgba(255,255,255,0.06); border-radius: 3px; height: 4px; width: 60px; overflow: hidden; }
+.mini-bar-fill { height: 100%; border-radius: 3px; }
+
+/* ── TIMELINE / WEEKLY PLAN ── */
+.tl { display: flex; flex-direction: column; gap: 0; }
+.tl-item { display: grid; grid-template-columns: 90px 16px 1fr; gap: 0 12px; }
+.tl-date { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: right; padding-top: 16px; line-height: 1.4; }
+.tl-spine { display: flex; flex-direction: column; align-items: center; }
+.tl-dot { width: 12px; height: 12px; border-radius: 50%; border: 2px solid; flex-shrink: 0; margin-top: 14px; z-index: 1; background: var(--bg); }
+.tl-line-seg { width: 2px; flex: 1; min-height: 8px; opacity: 0.2; }
+.tl-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 8px;
+  border-left-width: 3px;
+}
+.tl-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.tl-card-title { font-size: 13px; font-weight: 500; color: var(--text); }
+.tl-card-hrs { font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+.tl-badge { font-size: 9px; font-weight: 600; font-family: var(--font-mono); padding: 2px 7px; border-radius: 3px; letter-spacing: 0.08em; margin-left: 6px; }
+.tl-tasks { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.tl-task { font-size: 11px; color: var(--muted2); display: grid; grid-template-columns: 82px 1fr; gap: 8px; }
+.tl-slot { font-family: var(--font-mono); font-size: 10px; color: var(--muted); padding-top: 1px; }
+.tl-wknd { font-size: 10px; color: var(--muted); margin-top: 7px; padding-top: 7px; border-top: 1px dashed rgba(255,255,255,0.07); font-style: italic; }
+
+/* ── PHASE CARDS ── */
+.phase-title { font-family: var(--font-display); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.phase-dates { font-family: var(--font-mono); font-size: 10px; color: var(--muted); margin-bottom: 10px; }
+.phase-item { font-size: 12px; color: var(--muted2); padding: 6px 10px; background: rgba(255,255,255,0.03); border-radius: 6px; margin-bottom: 4px; }
+.phase-item strong { color: var(--text); font-weight: 500; }
+
+/* ── TABS ── */
+.tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tab {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--muted);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s, border-color 0.2s;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── SECTION HEADER ── */
+.sec-head { margin-bottom: 1rem; }
+.sec-head h2 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 700; color: #fff; }
+.sec-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── ALERTS ── */
+.alert { border-left: 3px solid; padding: 9px 14px; border-radius: 0 8px 8px 0; margin-bottom: 8px; font-size: 12px; }
+.alert-red { border-color: var(--red); background: rgba(248,113,113,0.07); color: #fca5a5; }
+.alert-amber { border-color: var(--amber); background: rgba(251,191,36,0.07); color: #fde68a; }
+.alert-green { border-color: var(--accent); background: rgba(110,231,183,0.07); color: #a7f3d0; }
+.alert-blue { border-color: var(--blue); background: rgba(96,165,250,0.07); color: #bfdbfe; }
+
+/* ── ETHICS DRIP BANNER ── */
+.drip-banner {
+  background: rgba(167,139,250,0.08);
+  border: 1px solid rgba(167,139,250,0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #c4b5fd;
+  margin-bottom: 14px;
+  display: flex;
+  gap: 10px;
+}
+.drip-banner .icon { font-size: 16px; flex-shrink: 0; }
+
+/* ── CHART WRAPPER ── */
+.chart-wrap { position: relative; width: 100%; height: 220px; }
+
+/* ── FILTER BAR ── */
+.filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1rem; }
+.filter-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--muted2);
+  cursor: pointer;
+  transition: all 0.15s;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.filter-btn:hover, .filter-btn.active { background: rgba(110,231,183,0.1); border-color: rgba(110,231,183,0.3); color: var(--accent); }
+
+/* ── STATUS COUNTERS ── */
+.status-row { display: flex; gap: 16px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.status-chip { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--muted2); }
+.status-chip span { font-size: 18px; font-weight: 700; font-family: var(--font-display); }
+
+/* ── LAST UPDATED ── */
+.last-updated { font-family: var(--font-mono); font-size: 10px; color: var(--muted); text-align: right; margin-top: 1rem; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .container { padding: 1rem 1.25rem; }
+  .grid-4 { grid-template-columns: repeat(2,1fr); }
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-3 { grid-template-columns: 1fr; }
+  .subject-row { grid-template-columns: 130px 1fr 40px 60px; }
+  .subject-row .subj-lm-count { display: none; }
+  .header { padding: 1.25rem; }
+}
+@media (max-width: 600px) {
+  .grid-4 { grid-template-columns: 1fr 1fr; }
+  .header-left h1 { font-size: 1.4rem; }
+  .lm-table th:nth-child(n+6), .lm-table td:nth-child(n+6) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>CFA <span>Level II</span> — 2026</h1>
+    <div class="header-sub">Study Dashboard · Auto-syncs from progress.csv</div>
+  </div>
+  <div class="exam-badge">
+    <div class="label">Exam date</div>
+    <div class="value" id="days-left">—</div>
+    <div class="sub">days to go · Aug 15, 2026</div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview')">Overview</button>
+    <button class="tab" onclick="showTab('lms')">All LMs</button>
+    <button class="tab" onclick="showTab('plan')">Study Plan</button>
+    <button class="tab" onclick="showTab('mocks')">Mock Schedule</button>
+  </div>
+
+  <!-- ══ TAB: OVERVIEW ══ -->
+  <div class="tab-pane active" id="tab-overview">
+
+    <!-- METRIC CARDS -->
+    <div class="grid-4" id="metrics"></div>
+
+    <!-- SUBJECT PROGRESS + DONUT -->
+    <div class="grid-2">
+      <div class="card card-lg">
+        <div class="card-title">Subject completion</div>
+        <div id="subject-bars"></div>
+      </div>
+      <div class="card card-lg">
+        <div class="card-title">Progress breakdown</div>
+        <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+        <div id="donut-legend" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;justify-content:center"></div>
+      </div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="card card-lg" style="margin-bottom:2rem">
+      <div class="card-title">Priority alerts</div>
+      <div id="alerts"></div>
+    </div>
+
+  </div>
+
+  <!-- ══ TAB: ALL LMs ══ -->
+  <div class="tab-pane" id="tab-lms">
+    <div class="sec-head">
+      <h2>All 42 Learning Modules</h2>
+      <p>Tick columns update automatically when you edit progress.csv and push to GitHub</p>
+    </div>
+    <div class="filter-bar" id="filter-bar"></div>
+    <div class="status-row" id="status-row"></div>
+    <div class="card" style="overflow-x:auto">
+      <table class="lm-table" id="lm-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Subject</th>
+            <th>Title</th>
+            <th>Weight</th>
+            <th>Class</th>
+            <th>Reading</th>
+            <th>Notes</th>
+            <th>QBank</th>
+            <th>Progress</th>
+          </tr>
+        </thead>
+        <tbody id="lm-tbody"></tbody>
+      </table>
+    </div>
+    <div class="last-updated" id="last-updated"></div>
+  </div>
+
+  <!-- ══ TAB: STUDY PLAN ══ -->
+  <div class="tab-pane" id="tab-plan">
+    <div class="sec-head">
+      <h2>Week-by-week plan</h2>
+      <p>Updated based on your class schedule · Quant deadline Apr 8 · FSA from Apr 19 · Derivatives class-paced</p>
+    </div>
+    <div class="drip-banner">
+      <span class="icon">◈</span>
+      <div><strong style="color:#e9d5ff">Ethics drip (from Apr 19):</strong> Read 2–3 pages of LM41 Guidance for Standards I–VII daily (30 min, outside your 9–12 block). By Jun 1, all Ethics reading is done — only CFAI QBank remains in the final week. Widely recommended on AnalystForum for L2.</div>
+    </div>
+    <div class="tl" id="timeline"></div>
+  </div>
+
+  <!-- ══ TAB: MOCK SCHEDULE ══ -->
+  <div class="tab-pane" id="tab-mocks">
+    <div class="sec-head">
+      <h2>July – August: Revision + Mock plan</h2>
+      <p>Exam: Aug 15, 2026 · 6 mock exams · Spaced revision · Final sprint</p>
+    </div>
+    <div class="grid-2" id="mock-grid"></div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// CONFIG — change CSV_URL after you set up GitHub
+// ══════════════════════════════════════════
+// HOW TO SET YOUR CSV URL:
+// After pushing to GitHub, replace the line below with:
+// const CSV_URL = 'https://raw.githubusercontent.com/YOUR_USERNAME/cfa-dashboard/main/progress.csv';
+const CSV_URL = 'https://raw.githubusercontent.com/Shivtewatia/Cfalevel2/main/progress.csv';
+
+// ══════════════════════════════════════════
+// PLAN DATA (hardcoded — doesn't change)
+// ══════════════════════════════════════════
+const WEEKS = [
+  { date:'Apr 6–8', title:'Quant sprint', color:'#a78bfa', badge:'DEADLINE APR 8', badge_bg:'rgba(167,139,250,0.15)', badge_col:'#c4b5fd', hrs:'9h',
+    tasks:[['Mon Apr 6','LM01 read + notes + QBank (2h) · Derivatives class notes (30 min)'],['Tue Apr 7','LM02 Time Series read + notes + QBank (3.5h) · Derivatives notes'],['Wed Apr 8','LM03 ML + LM04 Big Data read + notes + QBank (3.5h)']],
+    weekend:'Sat/Sun Apr 11–12: LM02–04 QBank review · LM18 DDV QBank (1.5h)'},
+  { date:'Apr 9–18', title:'Derivatives — pacing with class', color:'#2dd4bf', badge:'CLASS LIVE', badge_bg:'rgba(45,212,191,0.12)', badge_col:'#99f6e4', hrs:'~20h',
+    tasks:[['9–10:30 AM','Read Schweser AHEAD of next class (LM28 Forwards → LM29 Options)'],['10:30–11 AM','Consolidate previous class notes · fill gaps from Schweser'],['11–12 PM','CFAI QBank on whichever Derivatives LM class just covered'],['Apr 14–18','Target: 30+ QBank Qs each on LM28 and LM29 before Apr 19']],
+    weekend:'Apr 18–19: Derivatives error review. Read LM07 intro (FSA starts Mon Apr 19).'},
+  { date:'Apr 19–25', title:'FSA Week 1 — class + parallel study', color:'#f87171', badge:'FSA STARTS APR 19', badge_bg:'rgba(248,113,113,0.12)', badge_col:'#fca5a5', hrs:'18h',
+    tasks:[['9–10:30 AM','LM07 Intercorporate Investments — Schweser read (6h over week)'],['10:30–11 AM','Notes + reinforce that day\'s class content'],['11–12 PM','CFAI QBank LM07 (start after 2 reading sessions)'],['+30 min/day','Ethics drip begins — LM41 Guidance for Standards I–VII']],
+    weekend:'QBank LM07 review. Ethics drip continues all weekends.'},
+  { date:'Apr 26–May 2', title:'FSA Week 2 — class pace', color:'#f87171', badge:'FSA CONT.', badge_bg:'rgba(248,113,113,0.12)', badge_col:'#fca5a5', hrs:'21h',
+    tasks:[['Mon–Wed','LM08 Employee Compensation — read + notes (5h)'],['Thu–Fri','LM09 Multinational Operations — read + notes (5h)'],['11–12 PM daily','QBank: LM08 as covered, then LM09'],['+30 min/day','Ethics drip — LM41 continues']],
+    weekend:'QBank catch-up LM07–09. Ethics drip.'},
+  { date:'May 3–9', title:'FSA Week 3 — class pace', color:'#f87171', badge:'FSA CONT.', badge_bg:'rgba(248,113,113,0.12)', badge_col:'#fca5a5', hrs:'21h',
+    tasks:[['Mon–Tue','LM10 Analysis of Financial Institutions — read + notes (4h)'],['Wed–Thu','LM11 Evaluating Quality of Financial Reports — read + notes (4h)'],['Fri','FSA QBank sweep — LM07–11 mixed (2h)'],['+30 min/day','Ethics drip — LM41 finishing, start LM42']],
+    weekend:'FSA QBank LM07–11. Ethics drip.'},
+  { date:'May 10–16', title:'FSA Week 4 closes + Equity begins', color:'#fbbf24', badge:'FSA CLOSES', badge_bg:'rgba(251,191,36,0.12)', badge_col:'#fde68a', hrs:'21h',
+    tasks:[['Mon–Tue','LM12 Integration of FSA (3h) + full FSA QBank sweep all 6 LMs'],['Wed–Fri','LM19 Free Cash Flow Valuation — read + notes (5h)'],['11–12 PM daily','QBank alternating: FSA + LM19'],['+30 min/day','Ethics drip — LM42 Application Level II']],
+    weekend:'FSA marked done. LM19 QBank. Ethics drip.'},
+  { date:'May 17–23', title:'Equity — complete remaining 3 LMs', color:'#fbbf24', badge:'EQUITY', badge_bg:'rgba(251,191,36,0.12)', badge_col:'#fde68a', hrs:'21h',
+    tasks:[['Mon–Tue','LM20 Market-Based Valuation: P/E, EV Multiples — read + notes (5h)'],['Wed–Thu','LM21 Residual Income Valuation — read + notes (5h)'],['Fri','LM22 Private Company Valuation — read + notes (4h)'],['+30 min/day','Ethics drip — LM42 + any remaining pages']],
+    weekend:'Equity QBank LM19–22. Corp Issuers QBank LM14–15. Ethics drip final stretch.'},
+  { date:'May 24–30', title:'Fixed Income Blitz I', color:'#60a5fa', badge:'FI STARTS', badge_bg:'rgba(96,165,250,0.12)', badge_col:'#bfdbfe', hrs:'21h',
+    tasks:[['Mon–Wed','LM23 Term Structure & Interest Rate Dynamics (6h) — most conceptual FI LM'],['Thu–Fri','LM24 Arbitrage-Free Valuation Framework (5h)'],['11–12 PM daily','QBank LM23 then LM24'],['+30 min/day','Ethics drip — final days. Reading done by May 30.']],
+    weekend:'FI QBank LM23–24. Ethics reading complete.'},
+  { date:'May 31–Jun 6', title:'Fixed Income Blitz II — close FI', color:'#60a5fa', badge:'FI CLOSES', badge_bg:'rgba(96,165,250,0.12)', badge_col:'#bfdbfe', hrs:'21h',
+    tasks:[['Mon–Tue','LM25 Bonds with Embedded Options (6h) — most complex LM in curriculum'],['Wed–Thu','LM26 Credit Analysis Models (5h)'],['Fri','LM27 Credit Default Swaps (4h)']],
+    weekend:'FI QBank LM25–27. Ethics QBank (reading done). All 42 LMs complete.'},
+  { date:'Jun 1–7', title:'Ethics QBank + PM LM35 + final sweep', color:'#6ee7b7', badge:'SYLLABUS DONE', badge_bg:'rgba(110,231,183,0.12)', badge_col:'#a7f3d0', hrs:'~14h',
+    tasks:[['Mon–Tue','LM35 Active Portfolio Management — read + notes + QBank (4h)'],['Wed–Thu','Ethics LM40–42 — CFAI QBank only, case-based (3h) + error review'],['Fri–Weekend','QBank sweep: Economics, Corp Issuers, PM remaining LMs (7h)']],
+    weekend:'Tracker complete. All 42 LMs done. Enter July revision.'},
+];
+
+const MOCKS = [
+  { title:'Jul 1–14 — Rapid revision', dates:'2 weeks · Schweser QuickSheet + QBank', color:'#a78bfa',
+    items:['<strong>Week 1:</strong> FSA → Equity → Ethics (hardest 3, highest weight)','<strong>Week 2:</strong> Fixed Income → Derivatives → Portfolio Management','<strong>Daily:</strong> 1h summary notes + 1h QBank (25–30 questions)','<strong>Rule:</strong> Log every wrong answer. Zero new content.']},
+  { title:'Jul 15–31 — Mock phase 1', dates:'CFAI official mocks only · full timed conditions', color:'#60a5fa',
+    items:['<strong>Jul 15:</strong> Mock 1 — CFAI, full 4.5h timed','<strong>Jul 16–18:</strong> Deep error review (not another mock)','<strong>Jul 22:</strong> Mock 2 — CFAI, full timed + review','<strong>Jul 29:</strong> Mock 3 — CFAI, full timed + review']},
+  { title:'Aug 1–10 — Mock phase 2', dates:'Kaplan Schweser + CFAI mocks', color:'#fbbf24',
+    items:['<strong>Aug 1:</strong> Mock 4 — Kaplan Schweser','<strong>Aug 2–4:</strong> Weak subject deep dive (your bottom 2 from mocks)','<strong>Aug 7:</strong> Mock 5 — CFAI final official mock','<strong>Aug 8–9:</strong> Error log review only. No new content.']},
+  { title:'Aug 10–15 — Final sprint', dates:'Light review only · protect cognitive load', color:'#6ee7b7',
+    items:['<strong>Aug 10–11:</strong> Ethics — re-read Application LM one final time','<strong>Aug 12:</strong> Schweser QuickSheet all subjects','<strong>Aug 13:</strong> Formula sheet only. Zero new questions.','<strong>Aug 14:</strong> Rest. Light notes glance. Sleep early.','<strong>Aug 15:</strong> Exam day ◆']},
+];
+
+const SUBJECT_COLORS = {
+  'Quantitative Methods':'#a78bfa','Economics':'#2dd4bf','Financial Statement Analysis':'#f87171',
+  'Corporate Issuers':'#6ee7b7','Equity Investments':'#fbbf24','Fixed Income':'#60a5fa',
+  'Derivatives':'#f472b6','Alternative Investments':'#fb923c','Portfolio Management':'#818cf8',
+  'Ethical and Professional Standards':'#e879f9'
+};
+
+// ══════════════════════════════════════════
+// SCORING
+// ══════════════════════════════════════════
+function score(v) {
+  if (!v) return 0;
+  const s = String(v).trim().toLowerCase();
+  if (s === 'done') return 1;
+  if (s === 'half') return 0.5;
+  return 0;
+}
+function lmScore(row) { return score(row.Class)+score(row.Reading)+score(row.Notes)+score(row.QBank); }
+function lmPct(row)   { return Math.round(lmScore(row)/4*100); }
+
+function getSubjectData(rows) {
+  const map = {};
+  rows.forEach(r => {
+    if (!map[r.Subject]) map[r.Subject] = { weight: r.Weight, lms: [] };
+    map[r.Subject].lms.push(r);
+  });
+  return Object.entries(map).map(([name, d]) => {
+    const avg = Math.round(d.lms.reduce((a,r)=>a+lmPct(r),0)/d.lms.length);
+    return { name, weight: d.weight, lms: d.lms, avg };
+  }).sort((a,b) => a.avg - b.avg);
+}
+
+// ══════════════════════════════════════════
+// DAYS LEFT
+// ══════════════════════════════════════════
+function updateDaysLeft() {
+  const exam = new Date('2026-08-15');
+  const now = new Date();
+  const diff = Math.ceil((exam - now) / 86400000);
+  document.getElementById('days-left').textContent = diff;
+}
+
+// ══════════════════════════════════════════
+// RENDER METRICS
+// ══════════════════════════════════════════
+function renderMetrics(rows) {
+  const total = rows.length;
+  const done = rows.filter(r=>lmPct(r)===100).length;
+  const partial = rows.filter(r=>lmPct(r)>0&&lmPct(r)<100).length;
+  const untouched = rows.filter(r=>lmPct(r)===0).length;
+  const overall = Math.round(rows.reduce((a,r)=>a+lmPct(r),0)/total);
+  const daysLeft = Math.ceil((new Date('2026-06-07')-new Date())/86400000);
+
+  const cards = [
+    { val: overall+'%', lbl: 'Overall completion', sub: `${done} of ${total} LMs fully done`, color: overall<30?'#f87171':overall<60?'#fbbf24':'#6ee7b7' },
+    { val: done, lbl: 'LMs complete (100%)', sub: 'All 4 pillars done', color: '#6ee7b7' },
+    { val: untouched, lbl: 'LMs untouched', sub: 'Need full first pass', color: untouched>15?'#f87171':'#fbbf24' },
+    { val: Math.max(0,daysLeft), lbl: 'Days to Jun 7', sub: 'Syllabus deadline', color: daysLeft<14?'#f87171':daysLeft<30?'#fbbf24':'#60a5fa' },
+  ];
+  document.getElementById('metrics').innerHTML = cards.map(c=>`
+    <div class="card metric">
+      <div class="m-val" style="color:${c.color}">${c.val}</div>
+      <div class="m-lbl">${c.lbl}</div>
+      <div class="m-sub">${c.sub}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER SUBJECT BARS
+// ══════════════════════════════════════════
+function renderSubjectBars(rows) {
+  const subjects = getSubjectData(rows);
+  const el = document.getElementById('subject-bars');
+  el.innerHTML = subjects.map(s=>{
+    const col = SUBJECT_COLORS[s.name]||'#6ee7b7';
+    const status = s.avg===0?'ZERO':s.avg<50?'BEHIND':s.avg<90?'PARTIAL':'SOLID';
+    const sbg = s.avg===0?'rgba(248,113,113,0.12)':s.avg<50?'rgba(251,191,36,0.1)':s.avg<90?'rgba(96,165,250,0.1)':'rgba(110,231,183,0.1)';
+    const scol = s.avg===0?'#fca5a5':s.avg<50?'#fde68a':s.avg<90?'#bfdbfe':'#a7f3d0';
+    return `<div class="subject-row">
+      <div><div class="subj-name">${s.name}</div><div class="subj-weight">${s.weight} · ${s.lms.length} LMs</div></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${s.avg}%;background:${col}"></div></div>
+      <div class="pct" style="color:${col}">${s.avg}%</div>
+      <span class="status-badge" style="background:${sbg};color:${scol}">${status}</span>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER DONUT CHART
+// ══════════════════════════════════════════
+let donutInst = null;
+function renderDonut(rows) {
+  const done = rows.filter(r=>lmPct(r)===100).length;
+  const partial = rows.filter(r=>lmPct(r)>0&&lmPct(r)<100).length;
+  const untouched = rows.filter(r=>lmPct(r)===0).length;
+  const data = [done, partial, untouched];
+  const labels = ['Complete','Partial','Untouched'];
+  const colors = ['#6ee7b7','#fbbf24','#374151'];
+  if (donutInst) { donutInst.destroy(); donutInst = null; }
+  donutInst = new Chart(document.getElementById('donutChart'), {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:0, hoverOffset:4 }]},
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'72%',
+      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:c=>' '+c.label+': '+c.raw+' LMs' } } } }
+  });
+  document.getElementById('donut-legend').innerHTML = labels.map((l,i)=>`
+    <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted2)">
+      <span style="width:8px;height:8px;border-radius:2px;background:${colors[i]};display:inline-block"></span>
+      ${l}: <strong style="color:var(--text)">${data[i]}</strong>
+    </span>`).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER ALERTS
+// ══════════════════════════════════════════
+function renderAlerts(rows) {
+  const subjects = getSubjectData(rows);
+  const zero = subjects.filter(s=>s.avg===0);
+  const high_zero = zero.filter(s=>s.weight==='10-15%');
+  let html = '';
+  high_zero.forEach(s=>{
+    html += `<div class="alert alert-red">${s.name} (${s.weight}) — ${s.lms.length} LMs, 0% complete. High weight, no progress.</div>`;
+  });
+  zero.filter(s=>s.weight!=='10-15%').forEach(s=>{
+    html += `<div class="alert alert-amber">${s.name} (${s.weight}) — ${s.lms.length} LMs, 0% complete.</div>`;
+  });
+  subjects.filter(s=>s.avg>0&&s.avg<50).forEach(s=>{
+    html += `<div class="alert alert-amber">${s.name} — only ${s.avg}% done. Needs attention.</div>`;
+  });
+  if (html==='') html = '<div class="alert alert-green">No critical gaps detected. All subjects have progress. Keep the momentum!</div>';
+  document.getElementById('alerts').innerHTML = html;
+}
+
+// ══════════════════════════════════════════
+// RENDER LM TABLE
+// ══════════════════════════════════════════
+let currentFilter = 'All';
+let allRows = [];
+
+function tick(v) {
+  const s = String(v||'').trim().toLowerCase();
+  if (s==='done') return `<span class="tick tick-done">✓</span>`;
+  if (s==='half') return `<span class="tick tick-half">½</span>`;
+  return `<span class="tick tick-no">–</span>`;
+}
+
+function renderLMTable(rows, filter) {
+  const filtered = filter==='All' ? rows : rows.filter(r=>r.Subject===filter);
+  const tbody = document.getElementById('lm-tbody');
+  tbody.innerHTML = filtered.map(r=>{
+    const p = lmPct(r);
+    const col = p===100?'#6ee7b7':p>0?'#fbbf24':'#374151';
+    return `<tr>
+      <td class="lm-num">${r.LM}</td>
+      <td style="color:${SUBJECT_COLORS[r.Subject]||'var(--muted2)'};font-size:11px;white-space:nowrap">${r.Subject}</td>
+      <td style="color:var(--text);max-width:240px">${r.Title}</td>
+      <td style="font-family:var(--font-mono);font-size:10px;color:var(--muted);white-space:nowrap">${r.Weight}</td>
+      <td>${tick(r.Class)}</td>
+      <td>${tick(r.Reading)}</td>
+      <td>${tick(r.Notes)}</td>
+      <td>${tick(r.QBank)}</td>
+      <td><div class="mini-bar-wrap"><div class="mini-bar-bg"><div class="mini-bar-fill" style="width:${p}%;background:${col}"></div></div><span style="font-family:var(--font-mono);font-size:10px;color:${col};min-width:28px">${p}%</span></div></td>
+    </tr>`;
+  }).join('');
+
+  const total = filtered.length;
+  const done = filtered.filter(r=>lmPct(r)===100).length;
+  const partial = filtered.filter(r=>lmPct(r)>0&&lmPct(r)<100).length;
+  const untouched = filtered.filter(r=>lmPct(r)===0).length;
+  document.getElementById('status-row').innerHTML = `
+    <div class="status-chip"><span style="color:#6ee7b7">${done}</span> complete</div>
+    <div class="status-chip"><span style="color:#fbbf24">${partial}</span> partial</div>
+    <div class="status-chip"><span style="color:#6b7280">${untouched}</span> untouched</div>
+    <div class="status-chip"><span style="color:var(--muted2)">${total}</span> total shown</div>`;
+  document.getElementById('last-updated').textContent = 'Last loaded: '+new Date().toLocaleString('en-IN',{dateStyle:'medium',timeStyle:'short'});
+}
+
+function renderFilterBar(rows) {
+  const subjects = [...new Set(rows.map(r=>r.Subject))];
+  const bar = document.getElementById('filter-bar');
+  bar.innerHTML = ['All',...subjects].map(s=>`
+    <button class="filter-btn${s===currentFilter?' active':''}" onclick="setFilter('${s}')">${s==='All'?'All LMs':s}</button>`).join('');
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  renderFilterBar(allRows);
+  renderLMTable(allRows, f);
+}
+
+// ══════════════════════════════════════════
+// RENDER TIMELINE
+// ══════════════════════════════════════════
+function renderTimeline() {
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = WEEKS.map((w,i)=>{
+    const isLast = i===WEEKS.length-1;
+    return `<div class="tl-item">
+      <div class="tl-date">${w.date}</div>
+      <div class="tl-spine">
+        <div class="tl-dot" style="border-color:${w.color}"></div>
+        ${!isLast?`<div class="tl-line-seg" style="background:${w.color}"></div>`:''}
+      </div>
+      <div class="tl-card" style="border-left-color:${w.color}">
+        <div class="tl-card-head">
+          <span class="tl-card-title">${w.title}
+            <span class="tl-badge" style="background:${w.badge_bg};color:${w.badge_col}">${w.badge}</span>
+          </span>
+          <span class="tl-card-hrs">~${w.hrs}</span>
+        </div>
+        <div class="tl-tasks">
+          ${w.tasks.map(([s,t])=>`<div class="tl-task"><span class="tl-slot">${s}</span><span>${t}</span></div>`).join('')}
+        </div>
+        ${w.weekend?`<div class="tl-wknd">Weekend: ${w.weekend}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+// RENDER MOCK GRID
+// ══════════════════════════════════════════
+function renderMocks() {
+  document.getElementById('mock-grid').innerHTML = MOCKS.map(m=>`
+    <div class="card card-lg" style="border-top:3px solid ${m.color}">
+      <div class="phase-title">${m.title}</div>
+      <div class="phase-dates">${m.dates}</div>
+      ${m.items.map(i=>`<div class="phase-item">${i}</div>`).join('')}
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ══════════════════════════════════════════
+// LOAD CSV
+// ══════════════════════════════════════════
+function loadCSV() {
+  Papa.parse(CSV_URL+'?t='+Date.now(), {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      allRows = results.data.filter(r=>r.LM&&r.Subject&&r.Title);
+      renderMetrics(allRows);
+      renderSubjectBars(allRows);
+      renderDonut(allRows);
+      renderAlerts(allRows);
+      renderFilterBar(allRows);
+      renderLMTable(allRows, currentFilter);
+    },
+    error: function(err) {
+      console.error('CSV load error:', err);
+      document.getElementById('alerts').innerHTML = '<div class="alert alert-red">Could not load progress.csv. Make sure the file is in the same folder as index.html, or update CSV_URL to your raw GitHub URL.</div>';
+    }
+  });
+}
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+updateDaysLeft();
+renderTimeline();
+renderMocks();
+loadCSV();
+
+// Auto-refresh every 60 seconds
+setInterval(loadCSV, 60000);
+</script>
+</body>
+</html>
